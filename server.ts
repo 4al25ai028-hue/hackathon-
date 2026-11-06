@@ -14,6 +14,7 @@ import {
   clearAllData,
   seedSampleData,
   getDatabaseStatus,
+  authenticateAdminUser,
 } from './src/data.js';
 import { classifyReport, checkForDuplicateReport } from './src/services/classifier.js';
 import { calculateComplaintPriority } from './src/services/aiPriorityService.js';
@@ -404,39 +405,29 @@ app.post('/api/reports/:id/verify', async (req: Request, res: Response) => {
 });
 
 /**
- * 9. Officer Authentication
+ * 9. Officer Authentication (Takes credentials from Supabase)
  */
-app.post('/api/admin/login', (req: Request, res: Response) => {
-  const { pin, username, password, department } = req.body;
-  const user = (username || '').trim();
-  const pass = (password || pin || '').trim();
+app.post('/api/admin/login', async (req: Request, res: Response) => {
+  try {
+    const { pin, username, password, department } = req.body;
+    const user = (username || pin || '').trim();
+    const pass = (password || pin || '').trim();
 
-  // Accepted passwords: ADMIN_SECRET_PIN ('civic2026'), 'admin', 'admin123', 'civic2026', 'password', or 'officer123'
-  const validPasswords = [ADMIN_SECRET_PIN, 'admin', 'admin123', 'civic2026', 'password', 'officer123'];
-  const isValid = validPasswords.includes(pass) || pass === ADMIN_SECRET_PIN;
-
-  if (isValid) {
-    const displayName = user
-      ? user.includes('@')
-        ? user.split('@')[0].replace('.', ' ').replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase())
-        : user.replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase())
-      : 'Operations Officer';
-
-    res.json({
-      success: true,
-      officer: {
-        name: `${displayName} (${department || 'Indiranagar Zone'})`,
-        badge: 'CIVIC-OFFICER-701',
-        department: department || 'Municipal Operations & Grievance Redressal',
-        username: user || 'admin',
-        role: 'SUPER_ADMIN',
-      },
-    });
-  } else {
-    res.status(401).json({
-      success: false,
-      error: 'Invalid officer credentials. Please verify your username and password.',
-    });
+    const authResult = await authenticateAdminUser(user, pass, department);
+    if (authResult.success) {
+      res.json({
+        success: true,
+        officer: authResult.officer,
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        error: authResult.error || 'Invalid officer credentials. Please verify your Supabase admin_users record.',
+      });
+    }
+  } catch (error: any) {
+    console.error('Error in officer login:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

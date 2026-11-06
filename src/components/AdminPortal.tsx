@@ -52,8 +52,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onLogin,
   onNavigateHome,
 }) => {
-  const [usernameInput, setUsernameInput] = useState('admin@gramvani.gov.in');
-  const [passwordInput, setPasswordInput] = useState('civic2026');
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [departmentInput, setDepartmentInput] = useState('Indiranagar Zone Operations');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -193,15 +193,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     });
     setIsLoggingIn(false);
     if (!success) {
-      setLoginError('Invalid officer credentials. Please check your username and password, or select a quick demo officer role below.');
+      setLoginError('Invalid officer credentials. Verification failed against Supabase database.');
     }
-  };
-
-  const handleApplyPreset = (presetUser: string, presetPass: string, presetDept: string) => {
-    setUsernameInput(presetUser);
-    setPasswordInput(presetPass);
-    setDepartmentInput(presetDept);
-    setLoginError(null);
   };
 
   const handleDuplicateAction = async (reportId: string, action: 'MERGE_AND_CLOSE' | 'CONFIRM_DISTINCT', originalId?: string) => {
@@ -313,12 +306,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
               {/* Field 2: Password with toggle */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Account Password
-                  </label>
-                  <span className="text-[11px] text-slate-400 font-mono">Demo: civic2026</span>
-                </div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Account Password
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <Lock className="w-4 h-4" />
@@ -378,7 +368,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   />
                   <span>Remember on this workstation</span>
                 </label>
-                <span className="text-[11px] text-emerald-700 font-medium">SSL Encrypted</span>
+                <span className="text-[11px] text-emerald-700 font-medium">Supabase Auth Verified</span>
               </div>
 
               {/* Submit Button */}
@@ -390,7 +380,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 {isLoggingIn ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Verifying Officer Credentials...</span>
+                    <span>Verifying with Supabase...</span>
                   </>
                 ) : (
                   <>
@@ -401,51 +391,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 )}
               </button>
             </form>
-
-            {/* Quick Demo Login Presets */}
-            <div className="pt-4 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                  Quick Demo Access (1-Click Fill)
-                </span>
-                <span className="text-[10px] text-slate-400">Testing accounts</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('admin@gramvani.gov.in', 'civic2026', 'Indiranagar Zone Operations')}
-                  className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all group"
-                >
-                  <div className="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800">
-                    Chief Officer
-                  </div>
-                  <div className="text-[10px] text-slate-500">Super Admin</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('ward.engineer@gramvani.gov.in', 'civic2026', 'Ward 12 Municipal Public Works')}
-                  className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all group"
-                >
-                  <div className="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800">
-                    Ward Engineer
-                  </div>
-                  <div className="text-[10px] text-slate-500">Public Works</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('water.board@gramvani.gov.in', 'civic2026', 'Water Supply & Drainage Board')}
-                  className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all group"
-                >
-                  <div className="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800">
-                    Water Board
-                  </div>
-                  <div className="text-[10px] text-slate-500">Sanitation</div>
-                </button>
-              </div>
-            </div>
 
             {/* Compliance Footer */}
             <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1.5">
@@ -574,14 +519,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               >
                 <Trash2 className="w-3.5 h-3.5 text-red-600" />
                 <span>Clear Database</span>
-              </button>
-              <button
-                onClick={handleSeedDatabase}
-                className="px-3 py-1.5 border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                title="Load sample complaints into local database"
-              >
-                <Database className="w-3.5 h-3.5 text-slate-600" />
-                <span>Load Sample Data</span>
               </button>
               <button
                 onClick={fetchIssueGroups}
@@ -1174,6 +1111,20 @@ CREATE TABLE IF NOT EXISTS public.subscribers (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Create admin_users table (Municipal Officer Authentication)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    department TEXT NOT NULL DEFAULT 'Indiranagar Zone Operations',
+    role TEXT NOT NULL DEFAULT 'SUPER_ADMIN',
+    badge_number TEXT DEFAULT 'CIVIC-OFFICER-701',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes for high-performance geospatial queries & duplicate lookups
 CREATE INDEX IF NOT EXISTS idx_reports_category ON public.reports(category);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON public.reports(status);
@@ -1181,6 +1132,8 @@ CREATE INDEX IF NOT EXISTS idx_reports_issue_group_id ON public.reports(issue_gr
 CREATE INDEX IF NOT EXISTS idx_reports_coords ON public.reports(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_status_history_report_id ON public.status_history(report_id);
 CREATE INDEX IF NOT EXISTS idx_verifications_report_id ON public.verifications(report_id);
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
+CREATE INDEX IF NOT EXISTS idx_admin_users_username ON public.admin_users(username);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.issue_groups ENABLE ROW LEVEL SECURITY;
@@ -1188,6 +1141,7 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.status_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
 -- Create Open RLS Policies for Public/Anon API access
 CREATE POLICY "Allow public read access on issue_groups" ON public.issue_groups FOR SELECT USING (true);
@@ -1208,6 +1162,15 @@ CREATE POLICY "Allow public insert access on verifications" ON public.verificati
 
 CREATE POLICY "Allow public read access on subscribers" ON public.subscribers FOR SELECT USING (true);
 CREATE POLICY "Allow public insert access on subscribers" ON public.subscribers FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public read access on admin_users for auth" ON public.admin_users FOR SELECT USING (true);
+CREATE POLICY "Allow public insert on admin_users" ON public.admin_users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update on admin_users" ON public.admin_users FOR UPDATE USING (true);
+
+-- Initial Administrator Account in Supabase
+INSERT INTO public.admin_users (email, username, password_hash, full_name, department, role, badge_number)
+VALUES ('admin@gramvani.gov.in', 'admin', 'admin123', 'Chief Operations Officer', 'Indiranagar Zone Operations', 'SUPER_ADMIN', 'CIVIC-OFFICER-701')
+ON CONFLICT (email) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.increment_upvote(report_id_param TEXT)
 RETURNS INTEGER AS $$

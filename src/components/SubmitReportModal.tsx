@@ -127,10 +127,6 @@ export const SubmitReportModal: React.FC<SubmitReportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleUsePresetPhoto = (sampleUrl: string) => {
-    setImageUrl(sampleUrl);
-  };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -438,38 +434,6 @@ export const SubmitReportModal: React.FC<SubmitReportModalProps> = ({
               </label>
             )}
 
-            {/* Quick preset municipal sample photos */}
-            <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500 overflow-x-auto pb-1">
-              <span className="font-medium shrink-0">Or pick sample photo:</span>
-              <button
-                type="button"
-                onClick={() => handleUsePresetPhoto('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80')}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 shrink-0"
-              >
-                Pothole
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUsePresetPhoto('https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=800&auto=format&fit=crop&q=80')}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 shrink-0"
-              >
-                Sewage Overflow
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUsePresetPhoto('https://images.unsplash.com/photo-1508873696983-2df5293cb32f?w=800&auto=format&fit=crop&q=80')}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 shrink-0"
-              >
-                Fallen Wire
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUsePresetPhoto('https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=800&auto=format&fit=crop&q=80')}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 shrink-0"
-              >
-                Park Damage
-              </button>
-            </div>
 
             {/* Privacy Protection Notice */}
             <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex items-start gap-2 text-[11px] text-slate-600">

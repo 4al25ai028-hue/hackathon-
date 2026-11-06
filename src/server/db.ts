@@ -87,6 +87,18 @@ export function initDatabase() {
       email TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      department TEXT NOT NULL DEFAULT 'Indiranagar Zone Operations',
+      role TEXT NOT NULL DEFAULT 'SUPER_ADMIN',
+      badge_number TEXT DEFAULT 'CIVIC-OFFICER-701',
+      created_at TEXT NOT NULL
+    );
   `);
 
   // Column migration checks for existing SQLite database
@@ -95,6 +107,27 @@ export function initDatabase() {
   } catch {}
   try {
     db.exec("ALTER TABLE reports ADD COLUMN duplicate_status TEXT DEFAULT 'unique';");
+  } catch {}
+
+  // Check if admin_users has initial admin
+  try {
+    const adminCount = db.prepare('SELECT COUNT(*) as count FROM admin_users').get() as { count: number };
+    if (adminCount.count === 0) {
+      db.prepare(`
+        INSERT INTO admin_users (id, email, username, password_hash, full_name, department, role, badge_number, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'adm-001',
+        'admin@gramvani.gov.in',
+        'admin',
+        'admin123',
+        'Chief Operations Officer',
+        'Indiranagar Zone Operations',
+        'SUPER_ADMIN',
+        'CIVIC-OFFICER-701',
+        new Date().toISOString()
+      );
+    }
   } catch {}
 
   // Check if initial seed is needed
@@ -169,7 +202,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9716,
       longitude: 77.6412,
       ward: 'Ward 12 (Central)',
-      image_url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'Priya Sharma',
       submitter_contact: '+91 98*** **412',
@@ -210,7 +243,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9718,
       longitude: 77.6414,
       ward: 'Ward 12 (Central)',
-      image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 1,
       submitter_name: 'Anonymous Citizen',
       submitter_contact: 'Masked',
@@ -251,7 +284,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9654,
       longitude: 77.6321,
       ward: 'Ward 7 (West)',
-      image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'Rohan Mehra',
       submitter_contact: '+91 97*** **981',
@@ -310,7 +343,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9812,
       longitude: 77.6210,
       ward: 'Ward 5 (North)',
-      image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'Sister Miriam',
       submitter_contact: '+91 94*** **112',
@@ -325,7 +358,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       updated_at: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
       resolved_at: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
       resolution_notes: 'Line was de-energized within 18 minutes. Overhead insulator replaced, new high-tensile insulated cabling installed and secured 5.5 meters above road clearance.',
-      resolution_image_url: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32f?w=800&auto=format&fit=crop&q=80',
+      resolution_image_url: null,
       verified_count: 18,
       disputed_count: 0,
       history: [
@@ -378,7 +411,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9540,
       longitude: 77.6480,
       ward: 'Ward 9 (South)',
-      image_url: 'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'Anand Joshi',
       submitter_contact: '+91 99*** **765',
@@ -393,7 +426,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       updated_at: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
       resolved_at: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
       resolution_notes: 'Replaced broken chain linkage with galvanized rubber-coated heavy duty safety chains. Ground anchor re-welded and painted with rust-preventive coating.',
-      resolution_image_url: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=800&auto=format&fit=crop&q=80',
+      resolution_image_url: null,
       verified_count: 2,
       disputed_count: 0,
       history: [
@@ -438,7 +471,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9730,
       longitude: 77.6435,
       ward: 'Ward 12 (Central)',
-      image_url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'Vikram Sengupta (Residents Association)',
       submitter_contact: '+91 98*** **304',
@@ -488,7 +521,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9731,
       longitude: 77.6436,
       ward: 'Ward 12 (Central)',
-      image_url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'Kavita Menon',
       submitter_contact: '+91 96*** **872',
@@ -503,7 +536,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       updated_at: new Date(Date.now() - 42 * 24 * 3600 * 1000).toISOString(),
       resolved_at: new Date(Date.now() - 43 * 24 * 3600 * 1000).toISOString(),
       resolution_notes: 'Asphalt cold patch applied and roller compacted.',
-      resolution_image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop&q=80',
+      resolution_image_url: null,
       verified_count: 8,
       disputed_count: 1,
       history: []
@@ -519,7 +552,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       latitude: 12.9729,
       longitude: 77.6434,
       ward: 'Ward 12 (Central)',
-      image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=800&auto=format&fit=crop&q=80',
+      image_url: null,
       is_anonymous: 0,
       submitter_name: 'M. S. Narayan',
       submitter_contact: '+91 91*** **553',
@@ -534,7 +567,7 @@ export function seedDatabase(db: DatabaseSync = getDb()) {
       updated_at: new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString(),
       resolved_at: new Date(Date.now() - 91 * 24 * 3600 * 1000).toISOString(),
       resolution_notes: 'Repaired ruptured underground joint collar and backfilled with stone dust.',
-      resolution_image_url: 'https://images.unsplash.com/photo-1508873696983-2df5293cb32f?w=800&auto=format&fit=crop&q=80',
+      resolution_image_url: null,
       verified_count: 11,
       disputed_count: 0,
       history: []

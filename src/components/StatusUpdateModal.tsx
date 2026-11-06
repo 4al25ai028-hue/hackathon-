@@ -203,7 +203,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                   type="url"
                   value={resolutionImageUrl}
                   onChange={(e) => setResolutionImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
+                  placeholder="Enter proof photo URL or leave blank"
                   className="w-full px-2.5 py-1.5 border border-emerald-300 rounded text-xs bg-white text-slate-900"
                 />
               </div>
