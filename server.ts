@@ -407,14 +407,36 @@ app.post('/api/reports/:id/verify', async (req: Request, res: Response) => {
  * 9. Officer Authentication
  */
 app.post('/api/admin/login', (req: Request, res: Response) => {
-  const { pin } = req.body;
-  if (pin === ADMIN_SECRET_PIN) {
+  const { pin, username, password, department } = req.body;
+  const user = (username || '').trim();
+  const pass = (password || pin || '').trim();
+
+  // Accepted passwords: ADMIN_SECRET_PIN ('civic2026'), 'admin', 'admin123', 'civic2026', 'password', or 'officer123'
+  const validPasswords = [ADMIN_SECRET_PIN, 'admin', 'admin123', 'civic2026', 'password', 'officer123'];
+  const isValid = validPasswords.includes(pass) || pass === ADMIN_SECRET_PIN;
+
+  if (isValid) {
+    const displayName = user
+      ? user.includes('@')
+        ? user.split('@')[0].replace('.', ' ').replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase())
+        : user.replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase())
+      : 'Operations Officer';
+
     res.json({
       success: true,
-      officer: { name: 'Operations Officer (Indiranagar Zone)', badge: 'CIVIC-OFFICER-701' },
+      officer: {
+        name: `${displayName} (${department || 'Indiranagar Zone'})`,
+        badge: 'CIVIC-OFFICER-701',
+        department: department || 'Municipal Operations & Grievance Redressal',
+        username: user || 'admin',
+        role: 'SUPER_ADMIN',
+      },
     });
   } else {
-    res.status(401).json({ success: false, error: 'Invalid security PIN' });
+    res.status(401).json({
+      success: false,
+      error: 'Invalid officer credentials. Please verify your username and password.',
+    });
   }
 });
 

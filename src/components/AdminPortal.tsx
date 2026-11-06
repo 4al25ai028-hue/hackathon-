@@ -22,7 +22,14 @@ import {
   Sparkles,
   MapPin,
   Trash2,
-  Database
+  Database,
+  User,
+  Building2,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  Shield,
+  Landmark
 } from 'lucide-react';
 import { CivicReport, ReportStatus, IssueGroup } from '../types';
 
@@ -32,7 +39,8 @@ interface AdminPortalProps {
   onRefreshReports: () => void;
   onOpenStatusModal: (report: CivicReport) => void;
   isAdminLoggedIn: boolean;
-  onLogin: (pin: string) => Promise<boolean>;
+  onLogin: (credentials: { username: string; password: string; department: string } | string) => Promise<boolean>;
+  onNavigateHome?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -42,8 +50,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onOpenStatusModal,
   isAdminLoggedIn,
   onLogin,
+  onNavigateHome,
 }) => {
-  const [pinInput, setPinInput] = useState('');
+  const [usernameInput, setUsernameInput] = useState('admin@gramvani.gov.in');
+  const [passwordInput, setPasswordInput] = useState('civic2026');
+  const [departmentInput, setDepartmentInput] = useState('Indiranagar Zone Operations');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -161,15 +174,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [selectedDuplicate, setSelectedDuplicate] = useState<CivicReport | null>(null);
   const [isProcessingDuplicate, setIsProcessingDuplicate] = useState(false);
 
-  const handlePinSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!usernameInput.trim()) {
+      setLoginError('Please enter your Officer Email or Username.');
+      return;
+    }
+    if (!passwordInput.trim()) {
+      setLoginError('Please enter your account password.');
+      return;
+    }
     setLoginError(null);
     setIsLoggingIn(true);
-    const success = await onLogin(pinInput);
+    const success = await onLogin({
+      username: usernameInput.trim(),
+      password: passwordInput.trim(),
+      department: departmentInput,
+    });
     setIsLoggingIn(false);
     if (!success) {
-      setLoginError('Invalid Administrator PIN. (Default demo PIN: civic2026)');
+      setLoginError('Invalid officer credentials. Please check your username and password, or select a quick demo officer role below.');
     }
+  };
+
+  const handleApplyPreset = (presetUser: string, presetPass: string, presetDept: string) => {
+    setUsernameInput(presetUser);
+    setPasswordInput(presetPass);
+    setDepartmentInput(presetDept);
+    setLoginError(null);
   };
 
   const handleDuplicateAction = async (reportId: string, action: 'MERGE_AND_CLOSE' | 'CONFIRM_DISTINCT', originalId?: string) => {
@@ -200,47 +232,228 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   if (!isAdminLoggedIn) {
     return (
-      <div className="max-w-md mx-auto my-12 p-6 bg-white border border-slate-200 rounded-xl shadow-xs text-xs">
-        <div className="text-center space-y-2 mb-6">
-          <div className="w-12 h-12 rounded-full bg-slate-900 text-white mx-auto flex items-center justify-center">
-            <Lock className="w-5 h-5 text-emerald-400" />
-          </div>
-          <h2 className="text-base font-bold text-slate-900">Civic Officer Authorization</h2>
-          <p className="text-slate-500">
-            Authorized municipal officers only. Access triage desk, duplicate management, and resolution updates.
-          </p>
-        </div>
-
-        {loginError && (
-          <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-            {loginError}
+      <div className="min-h-[70vh] flex flex-col items-center justify-center py-6 px-4">
+        {/* Back navigation button */}
+        {onNavigateHome && (
+          <div className="w-full max-w-lg mb-4 flex items-center justify-between">
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Public Citizen Portal &amp; Map</span>
+            </button>
+            <span className="text-[11px] text-slate-400 font-mono">PORTAL ID: GV-ADM-2026</span>
           </div>
         )}
 
-        <form onSubmit={handlePinSubmit} className="space-y-4">
-          <div>
-            <label className="block font-semibold text-slate-800 mb-1">
-              Officer Security PIN
-            </label>
-            <input
-              type="password"
-              required
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value)}
-              placeholder="Enter PIN (e.g. civic2026)"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">Demo PIN: <strong className="text-slate-600">civic2026</strong></p>
+        <div className="w-full max-w-lg bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden">
+          {/* Government Portal Header */}
+          <div className="bg-slate-900 text-white p-6 relative overflow-hidden">
+            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="flex items-center gap-3.5 mb-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-md shrink-0">
+                <Landmark className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] tracking-wider uppercase font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                    MUNICIPAL AUTHORITY
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">SECURE GATEWAY</span>
+                </div>
+                <h1 className="text-lg font-bold text-white tracking-tight mt-0.5">
+                  GramVani Officer Portal
+                </h1>
+                <p className="text-xs text-slate-300">
+                  Grievance Redressal &amp; Public Works Administration
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Authorized Civic Officers Only</span>
+              </span>
+              <span>Charter PS-14 Compliant</span>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoggingIn}
-            className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors shadow-xs"
-          >
-            {isLoggingIn ? 'Authenticating...' : 'Sign In to Officer Portal'}
-          </button>
-        </form>
+          {/* Login Form Body */}
+          <div className="p-6 space-y-5">
+            {loginError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-start gap-2 animate-fade-in">
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="flex-1 font-medium">{loginError}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {/* Field 1: Username / Email */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Officer Email or Username
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value)}
+                    placeholder="e.g. admin@gramvani.gov.in"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Field 2: Password with toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Account Password
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-mono">Demo: civic2026</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Enter account password"
+                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-hidden"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Field 3: Department / Zone Select */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Municipal Department / Zone Jurisdiction
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <select
+                    value={departmentInput}
+                    onChange={(e) => setDepartmentInput(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="Indiranagar Zone Operations">Indiranagar Zone Operations &amp; Grievances</option>
+                    <option value="Ward 12 Municipal Public Works">Ward 12 Municipal Public Works &amp; Engineering</option>
+                    <option value="Water Supply & Drainage Board">Water Supply &amp; Drainage Board</option>
+                    <option value="Public Health & Solid Waste">Public Health &amp; Solid Waste Management</option>
+                    <option value="Central Administrative Command">Central Municipal Commissioner Desk</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Remember me & Security Info */}
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded-sm focus:ring-emerald-500"
+                  />
+                  <span>Remember on this workstation</span>
+                </label>
+                <span className="text-[11px] text-emerald-700 font-medium">SSL Encrypted</span>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Verifying Officer Credentials...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Sign In to Officer Portal</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Quick Demo Login Presets */}
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                  Quick Demo Access (1-Click Fill)
+                </span>
+                <span className="text-[10px] text-slate-400">Testing accounts</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('admin@gramvani.gov.in', 'civic2026', 'Indiranagar Zone Operations')}
+                  className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all group"
+                >
+                  <div className="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800">
+                    Chief Officer
+                  </div>
+                  <div className="text-[10px] text-slate-500">Super Admin</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('ward.engineer@gramvani.gov.in', 'civic2026', 'Ward 12 Municipal Public Works')}
+                  className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all group"
+                >
+                  <div className="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800">
+                    Ward Engineer
+                  </div>
+                  <div className="text-[10px] text-slate-500">Public Works</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('water.board@gramvani.gov.in', 'civic2026', 'Water Supply & Drainage Board')}
+                  className="p-2 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition-all group"
+                >
+                  <div className="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800">
+                    Water Board
+                  </div>
+                  <div className="text-[10px] text-slate-500">Sanitation</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Compliance Footer */}
+            <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1.5">
+              <Shield className="w-3 h-3 text-slate-400" />
+              <span>Official portal. All actions are audited under Municipal Service Charter PS-14.</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

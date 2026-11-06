@@ -68,18 +68,23 @@ export default function App() {
     fetchData();
   }, []);
 
-  const handleAdminLogin = async (pin: string): Promise<boolean> => {
+  const handleAdminLogin = async (
+    credentials: { username: string; password: string; department?: string } | string
+  ): Promise<boolean> => {
     try {
+      const payload = typeof credentials === 'string'
+        ? { pin: credentials }
+        : credentials;
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
         setIsAdminLoggedIn(true);
         setAdminOfficer(data.officer);
-        showToast('Authenticated as Municipal Operations Officer.');
+        showToast(`Authenticated as ${data.officer?.name || 'Municipal Operations Officer'}.`);
         return true;
       }
       return false;
@@ -188,6 +193,7 @@ export default function App() {
                 onOpenStatusModal={(rep) => setSelectedReportForUpdate(rep)}
                 isAdminLoggedIn={isAdminLoggedIn}
                 onLogin={handleAdminLogin}
+                onNavigateHome={() => setActiveTab('map')}
               />
             )}
           </>
