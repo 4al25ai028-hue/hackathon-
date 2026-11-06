@@ -69,7 +69,7 @@ export default function App() {
   }, []);
 
   const handleAdminLogin = async (
-    credentials: { username: string; password: string; department?: string } | string
+    credentials: { username: string; password: string } | string
   ): Promise<boolean> => {
     try {
       const payload = typeof credentials === 'string'
@@ -84,7 +84,7 @@ export default function App() {
       if (data.success) {
         setIsAdminLoggedIn(true);
         setAdminOfficer(data.officer);
-        showToast(`Authenticated as ${data.officer?.name || 'Municipal Operations Officer'}.`);
+        showToast(`Authenticated as ${data.officer?.name || 'Administrator'}.`);
         return true;
       }
       return false;
