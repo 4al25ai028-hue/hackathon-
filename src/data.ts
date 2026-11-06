@@ -37,6 +37,9 @@ export const supabase: SupabaseClient = createClient(
   }
 );
 
+console.log('Supabase initialized with URL:', supabaseUrl);
+console.log('Supabase configured:', isSupabaseConfigured);
+
 export function getDatabaseStatus(): {
   is_connected: boolean;
   provider: 'supabase' | 'sqlite_fallback';
@@ -149,27 +152,37 @@ export async function getReportsData(filters: {
   search?: string;
   flagged_duplicates?: boolean;
 }): Promise<CivicReport[]> {
-  let query = supabase.from('reports').select('*');
-
-  if (filters.category && filters.category !== 'All') query = query.eq('category', filters.category);
-  if (filters.status && filters.status !== 'All') query = query.eq('status', filters.status);
-  if (filters.ward && filters.ward !== 'All') query = query.eq('ward', filters.ward);
-  if (filters.flagged_duplicates) query = query.eq('is_duplicate_flagged', true);
-
-  if (filters.search) {
-    const clean = sanitizeSearch(filters.search);
-    if (clean) {
-      const term = `%${clean}%`;
-      query = query.or(
-        `id.ilike.${term},title.ilike.${term},description.ilike.${term},address.ilike.${term}`
-      );
-    }
+  if (!isSupabaseConfigured) {
+    console.warn('Supabase not configured, returning empty reports list');
+    return [];
   }
 
-  query = query.order('created_at', { ascending: false });
+  try {
+    let query = supabase.from('reports').select('*');
 
-  const data = check(await query, 'reports query');
-  return (data || []).map(rowToReport);
+    if (filters.category && filters.category !== 'All') query = query.eq('category', filters.category);
+    if (filters.status && filters.status !== 'All') query = query.eq('status', filters.status);
+    if (filters.ward && filters.ward !== 'All') query = query.eq('ward', filters.ward);
+    if (filters.flagged_duplicates) query = query.eq('is_duplicate_flagged', true);
+
+    if (filters.search) {
+      const clean = sanitizeSearch(filters.search);
+      if (clean) {
+        const term = `%${clean}%`;
+        query = query.or(
+          `id.ilike.${term},title.ilike.${term},description.ilike.${term},address.ilike.${term}`
+        );
+      }
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const data = check(await query, 'reports query');
+    return (data || []).map(rowToReport);
+  } catch (err: any) {
+    console.error('getReportsData error:', err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
