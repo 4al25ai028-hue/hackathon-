@@ -9,7 +9,10 @@ import {
   Check, 
   ChevronRight,
   Info,
-  Loader2
+  Loader2,
+  Upload,
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { IssueCategory, PriorityLevel, DuplicateCheckResult, CivicReport } from '../types';
 import { classifyReport } from '../services/classifier';
@@ -126,6 +129,16 @@ export const SubmitReportModal: React.FC<SubmitReportModalProps> = ({
 
   const handleUsePresetPhoto = (sampleUrl: string) => {
     setImageUrl(sampleUrl);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -362,21 +375,72 @@ export const SubmitReportModal: React.FC<SubmitReportModalProps> = ({
             )}
           </div>
 
-          {/* Photo Evidence & Privacy */}
+          {/* Photo Upload Area */}
           <div className="space-y-2">
             <label className="block font-semibold text-slate-800">
               Photographic Evidence
             </label>
+
             <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Paste image URL or select a sample photo below"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+              type="file"
+              id="photo-upload-file-input"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
             />
+
+            {imageUrl ? (
+              <div className="relative border border-slate-300 rounded-lg p-2.5 bg-slate-50 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <img
+                    src={imageUrl}
+                    alt="Uploaded evidence preview"
+                    className="w-14 h-14 object-cover rounded-md border border-slate-200 shrink-0"
+                  />
+                  <div className="truncate text-xs">
+                    <span className="font-semibold text-slate-800 block truncate">Photo Attached</span>
+                    <span className="text-[11px] text-emerald-600 font-medium">Ready to submit with report</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <label
+                    htmlFor="photo-upload-file-input"
+                    className="px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-xs font-semibold text-slate-700 cursor-pointer transition-colors"
+                  >
+                    Change
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Remove photo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label
+                htmlFor="photo-upload-file-input"
+                className="w-full border-2 border-dashed border-slate-300 hover:border-emerald-600 hover:bg-emerald-50/40 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                  <Upload className="w-5 h-5 text-slate-600 group-hover:text-emerald-700" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-800 text-xs block group-hover:text-emerald-800">
+                    Click to Upload Image
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Select photo from your camera or local gallery
+                  </span>
+                </div>
+              </label>
+            )}
+
             {/* Quick preset municipal sample photos */}
             <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500 overflow-x-auto pb-1">
-              <span className="font-medium shrink-0">Sample photos:</span>
+              <span className="font-medium shrink-0">Or pick sample photo:</span>
               <button
                 type="button"
                 onClick={() => handleUsePresetPhoto('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80')}

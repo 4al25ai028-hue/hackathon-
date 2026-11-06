@@ -34,6 +34,8 @@ export function initDatabase() {
       potential_duplicate_of TEXT,
       duplicate_confidence REAL,
       is_duplicate_flagged INTEGER DEFAULT 0,
+      issue_group_id TEXT,
+      duplicate_status TEXT DEFAULT 'unique',
       admin_notes TEXT,
       assigned_department TEXT,
       assigned_officer TEXT,
@@ -44,6 +46,18 @@ export function initDatabase() {
       resolution_image_url TEXT,
       verified_count INTEGER DEFAULT 0,
       disputed_count INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS issue_groups (
+      id TEXT PRIMARY KEY,
+      issue_title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      location TEXT,
+      latitude REAL,
+      longitude REAL,
+      total_reports INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS status_history (
@@ -75,6 +89,14 @@ export function initDatabase() {
     );
   `);
 
+  // Column migration checks for existing SQLite database
+  try {
+    db.exec('ALTER TABLE reports ADD COLUMN issue_group_id TEXT;');
+  } catch {}
+  try {
+    db.exec("ALTER TABLE reports ADD COLUMN duplicate_status TEXT DEFAULT 'unique';");
+  } catch {}
+
   // Check if initial seed is needed
   const countRow = db.prepare('SELECT COUNT(*) as count FROM reports').get() as { count: number };
   if (countRow.count === 0) {
@@ -82,13 +104,31 @@ export function initDatabase() {
   }
 }
 
-function seedDatabase(db: DatabaseSync) {
+export function clearAllDatabaseData() {
+  const db = getDb();
+  db.exec(`
+    DELETE FROM reports;
+    DELETE FROM issue_groups;
+    DELETE FROM status_history;
+    DELETE FROM verifications;
+    DELETE FROM subscribers;
+  `);
+}
+
+export function seedDatabase(db: DatabaseSync = getDb()) {
+  const insertGroup = db.prepare(`
+    INSERT INTO issue_groups (
+      id, issue_title, category, location, latitude, longitude, total_reports, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
   const insertReport = db.prepare(`
     INSERT INTO reports (
       id, title, description, category, priority, status,
       address, latitude, longitude, ward, image_url,
       is_anonymous, submitter_name, submitter_contact, upvotes_count,
       potential_duplicate_of, duplicate_confidence, is_duplicate_flagged,
+      issue_group_id, duplicate_status,
       admin_notes, assigned_department, assigned_officer,
       created_at, updated_at, resolved_at, resolution_notes, resolution_image_url,
       verified_count, disputed_count
@@ -97,6 +137,7 @@ function seedDatabase(db: DatabaseSync) {
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
       ?, ?, ?,
+      ?, ?,
       ?, ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?
@@ -500,12 +541,52 @@ function seedDatabase(db: DatabaseSync) {
     }
   ];
 
+  // Seed initial issue group
+  insertGroup.run(
+    'ISSUE-0001',
+    'Deep crater pothole on 5th Main & Elm Street',
+    'Roads & Potholes',
+    '412 5th Main Road, Ward 12, Indiranagar',
+    12.9716,
+    77.6412,
+    2,
+    new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+    new Date(Date.now() - 14 * 3600 * 1000).toISOString()
+  );
+
+  insertGroup.run(
+    'ISSUE-0002',
+    'Overflowing Sewage Drain & Biohazard Waste',
+    'Water Supply & Drainage',
+    'Corner Market Alley, Ward 7, Westside',
+    12.9654,
+    77.6321,
+    1,
+    new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
+    new Date(Date.now() - 8 * 3600 * 1000).toISOString()
+  );
+
   for (const rep of initialReports) {
+    let groupId: string | null = null;
+    let dupStatus = 'unique';
+
+    if (rep.id === 'CC-2026-1041') {
+      groupId = 'ISSUE-0001';
+      dupStatus = 'grouped';
+    } else if (rep.id === 'CC-2026-1042') {
+      groupId = 'ISSUE-0001';
+      dupStatus = 'grouped';
+    } else if (rep.id === 'CC-2026-0985') {
+      groupId = 'ISSUE-0002';
+      dupStatus = 'unique';
+    }
+
     insertReport.run(
       rep.id, rep.title, rep.description, rep.category, rep.priority, rep.status,
       rep.address, rep.latitude, rep.longitude, rep.ward, rep.image_url,
       rep.is_anonymous, rep.submitter_name, rep.submitter_contact, rep.upvotes_count,
       rep.potential_duplicate_of, rep.duplicate_confidence, rep.is_duplicate_flagged,
+      groupId, dupStatus,
       rep.admin_notes, rep.assigned_department, rep.assigned_officer,
       rep.created_at, rep.updated_at, rep.resolved_at, rep.resolution_notes, rep.resolution_image_url,
       rep.verified_count, rep.disputed_count

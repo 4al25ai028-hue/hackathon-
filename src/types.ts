@@ -36,6 +36,8 @@ export interface CivicReport {
   potential_duplicate_of: string | null;
   duplicate_confidence: number | null;
   is_duplicate_flagged: boolean;
+  issue_group_id: string | null;
+  duplicate_status: 'unique' | 'possible_duplicate' | 'grouped' | string;
   admin_notes: string | null;
   assigned_department: string | null;
   assigned_officer: string | null;
@@ -46,6 +48,19 @@ export interface CivicReport {
   resolution_image_url: string | null;
   verified_count: number;
   disputed_count: number;
+}
+
+export interface IssueGroup {
+  id: string; // e.g. ISSUE-0001
+  issue_title: string;
+  category: IssueCategory;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
+  total_reports: number;
+  created_at: string;
+  updated_at: string;
+  reports?: CivicReport[];
 }
 
 export interface StatusHistoryItem {

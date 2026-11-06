@@ -55,9 +55,20 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const [isSubmittingVote, setIsSubmittingVote] = useState(false);
   const [userVoted, setUserVoted] = useState<boolean | null>(null);
 
+  // GramVani AI Priority state
+  const [aiPriorityData, setAiPriorityData] = useState<{
+    priority_number: number;
+    priority_level: string;
+    label: string;
+    description: string;
+    source: string;
+  } | null>(null);
+  const [isCalculatingPriority, setIsCalculatingPriority] = useState(false);
+
   const fetchReportDetails = async (id: string) => {
     setIsLoading(true);
     setError(null);
+    setAiPriorityData(null);
     try {
       const res = await fetch(`/api/reports/${id}`);
       const data = await res.json();
@@ -68,10 +79,42 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
       setVerifications(data.verifications || []);
       setOriginalReport(data.original_report || null);
       setUpvotes(data.report.upvotes_count || 0);
+
+      // Trigger GramVani AI Priority calculation
+      fetchAiPriority(data.report);
     } catch (err: any) {
       setError(err.message || 'Failed to load report');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAiPriority = async (rep: CivicReport) => {
+    setIsCalculatingPriority(true);
+    try {
+      const res = await fetch('/api/priority/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          complaint_id: rep.id,
+          title: rep.title,
+          description: rep.description,
+          category: rep.category,
+          location: rep.address,
+          ward: rep.ward,
+          people_affected: rep.upvotes_count || 10,
+          submission_date: rep.created_at,
+          status: rep.status,
+        }),
+      });
+      const pData = await res.json();
+      if (pData.success) {
+        setAiPriorityData(pData);
+      }
+    } catch (err) {
+      console.error('Failed to calculate GramVani AI priority:', err);
+    } finally {
+      setIsCalculatingPriority(false);
     }
   };
 
@@ -217,6 +260,49 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 <span>·</span>
                 <span>Logged {new Date(report.created_at).toLocaleString()}</span>
               </div>
+            </div>
+
+            {/* GramVani AI Priority Banner */}
+            <div className="bg-slate-900 text-white p-3.5 rounded-xl border border-slate-800 space-y-2 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                  <span className="font-semibold text-xs text-emerald-300">
+                    GramVani AI Complaint Priority Rating
+                  </span>
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+                    gemini-3.1-flash-lite
+                  </span>
+                </div>
+
+                {aiPriorityData ? (
+                  <span className="text-xs font-bold font-mono px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Priority Score: {aiPriorityData.priority_number} / 5
+                  </span>
+                ) : isCalculatingPriority ? (
+                  <span className="text-[11px] text-slate-400 font-mono animate-pulse">
+                    Evaluating risks...
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => fetchAiPriority(report)}
+                    className="text-[11px] text-emerald-400 underline font-medium hover:text-emerald-300"
+                  >
+                    Run AI Priority Check
+                  </button>
+                )}
+              </div>
+
+              {aiPriorityData && (
+                <div className="text-[11px] text-slate-300 space-y-1 border-t border-slate-800 pt-2">
+                  <div className="font-semibold text-white">
+                    {aiPriorityData.label}
+                  </div>
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    {aiPriorityData.description}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Potential Duplicate Banner */}

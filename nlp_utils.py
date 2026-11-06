@@ -96,6 +96,21 @@ def classify_text(title: str, description: str) -> Dict[str, Any]:
         'matched_keywords': list(set(matched_terms.get(best_cat, [])))
     }
 
+def format_gramvani_priority(num: int) -> Dict[str, Any]:
+    mapping = {
+        1: ("Critical", "1 = HIGHEST PRIORITY (CRITICAL) - Life-threatening situations, serious health risks, contaminated drinking water, dangerous electrical faults."),
+        2: ("Critical", "2 = VERY HIGH PRIORITY - Major water shortages, serious sanitation problems, dangerous road damage, large-scale electricity failures."),
+        3: ("High", "3 = HIGH PRIORITY - Damaged roads, regular water supply issues, garbage accumulation, broken streetlights, drainage problems."),
+        4: ("Medium", "4 = MEDIUM PRIORITY - Agriculture and economic development requests, minor infrastructure repairs, public facility improvements."),
+        5: ("Low", "5 = LOWEST PRIORITY - Village beautification, park improvements, benches, minor suggestions, general development ideas.")
+    }
+    level, desc = mapping.get(num, (3, "3 = HIGH PRIORITY"))
+    return {
+        "numeric_priority": num,
+        "priority_level": level,
+        "description": desc
+    }
+
 def calculate_haversine_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance in meters between two GPS coordinates."""
     R = 6371000.0  # Earth radius in meters
