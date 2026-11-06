@@ -25,8 +25,9 @@ const supabaseKey = (
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
   supabaseKey &&
-  !supabaseUrl.includes('https://notqqrlguxqyhfixldhh.supabase.co') &&
-  !supabaseKey.includes('sb_publishable_rU_UW-aY9v-LEvbtZKJu2Q_tXx0AOK1')
+  supabaseUrl.startsWith('https://') &&
+  !supabaseUrl.includes('your-project-ref') &&
+  !supabaseKey.includes('your-anon-public-key')
 );
 
 export const supabase: SupabaseClient = createClient(
