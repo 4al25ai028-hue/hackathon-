@@ -24,6 +24,7 @@ import {
   Trash2,
   Database,
   User,
+  Building2,
   Eye,
   EyeOff,
   ArrowLeft,
@@ -38,7 +39,7 @@ interface AdminPortalProps {
   onRefreshReports: () => void;
   onOpenStatusModal: (report: CivicReport) => void;
   isAdminLoggedIn: boolean;
-  onLogin: (credentials: { username: string; password: string } | string) => Promise<boolean>;
+  onLogin: (credentials: { username: string; password: string; department: string } | string) => Promise<boolean>;
   onNavigateHome?: () => void;
 }
 
@@ -53,6 +54,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 }) => {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [departmentInput, setDepartmentInput] = useState('Indiranagar Zone Operations');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -187,10 +189,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     const success = await onLogin({
       username: usernameInput.trim(),
       password: passwordInput.trim(),
+      department: departmentInput,
     });
     setIsLoggingIn(false);
     if (!success) {
-      setLoginError('Invalid administrator credentials. Verification failed against Supabase.');
+      setLoginError('Invalid officer credentials. Verification failed against Supabase database.');
     }
   };
 
@@ -254,10 +257,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <span className="text-[10px] text-slate-400 font-mono">SECURE GATEWAY</span>
                 </div>
                 <h1 className="text-lg font-bold text-white tracking-tight mt-0.5">
-                  GramVani Admin Portal
+                  GramVani Officer Portal
                 </h1>
                 <p className="text-xs text-slate-300">
-                  Community Grievance Redressal &amp; Resolution Desk
+                  Grievance Redressal &amp; Public Works Administration
                 </p>
               </div>
             </div>
@@ -265,7 +268,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Single Administrator Gateway</span>
+                <span>Authorized Civic Officers Only</span>
               </span>
               <span>Charter PS-14 Compliant</span>
             </div>
@@ -284,7 +287,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               {/* Field 1: Username / Email */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Administrator Email or Username
+                  Officer Email or Username
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -304,7 +307,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               {/* Field 2: Password with toggle */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Administrator Password
+                  Account Password
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -315,7 +318,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     required
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Enter admin password"
+                    placeholder="Enter account password"
                     className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                   />
                   <button
@@ -325,6 +328,32 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                </div>
+              </div>
+
+              {/* Field 3: Department / Zone Select */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Municipal Department / Zone Jurisdiction
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <select
+                    value={departmentInput}
+                    onChange={(e) => setDepartmentInput(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="Indiranagar Zone Operations">Indiranagar Zone Operations &amp; Grievances</option>
+                    <option value="Ward 12 Municipal Public Works">Ward 12 Municipal Public Works &amp; Engineering</option>
+                    <option value="Water Supply & Drainage Board">Water Supply &amp; Drainage Board</option>
+                    <option value="Public Health & Solid Waste">Public Health &amp; Solid Waste Management</option>
+                    <option value="Central Administrative Command">Central Municipal Commissioner Desk</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
 
@@ -356,7 +385,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Sign In as Administrator</span>
+                    <span>Sign In to Officer Portal</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                   </>
                 )}

@@ -405,15 +405,15 @@ app.post('/api/reports/:id/verify', async (req: Request, res: Response) => {
 });
 
 /**
- * 9. Administrator Authentication (Takes credentials from Supabase)
+ * 9. Officer Authentication (Takes credentials from Supabase)
  */
 app.post('/api/admin/login', async (req: Request, res: Response) => {
   try {
-    const { pin, username, password } = req.body;
+    const { pin, username, password, department } = req.body;
     const user = (username || pin || '').trim();
     const pass = (password || pin || '').trim();
 
-    const authResult = await authenticateAdminUser(user, pass);
+    const authResult = await authenticateAdminUser(user, pass, department);
     if (authResult.success) {
       res.json({
         success: true,
@@ -422,11 +422,11 @@ app.post('/api/admin/login', async (req: Request, res: Response) => {
     } else {
       res.status(401).json({
         success: false,
-        error: authResult.error || 'Invalid administrator credentials. Please verify your Supabase admin_users record.',
+        error: authResult.error || 'Invalid officer credentials. Please verify your Supabase admin_users record.',
       });
     }
   } catch (error: any) {
-    console.error('Error in administrator login:', error);
+    console.error('Error in officer login:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
