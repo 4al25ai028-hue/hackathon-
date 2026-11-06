@@ -63,6 +63,9 @@ export default function App() {
         fetch('/api/analytics'),
       ]);
 
+      if (!repRes.ok) throw new Error(`Reports fetch failed: ${repRes.status}`);
+      if (!anaRes.ok) throw new Error(`Analytics fetch failed: ${anaRes.status}`);
+
       const repData = await repRes.json();
       const anaData = await anaRes.json();
 
