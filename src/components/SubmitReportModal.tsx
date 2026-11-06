@@ -274,34 +274,18 @@ export const SubmitReportModal: React.FC<SubmitReportModalProps> = ({
             </div>
           )}
 
-          {/* Category & Priority Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold text-slate-800 mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as IssueCategory)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-600/30 text-xs bg-white"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-800 mb-1">Priority</label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as PriorityLevel)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-600/30 text-xs bg-white"
-              >
-                <option value="Low">Low (Routine maintenance)</option>
-                <option value="Medium">Medium (Affects daily traffic/convenience)</option>
-                <option value="High">High (Significant obstacle or safety risk)</option>
-                <option value="Critical">Critical (Immediate danger to life/health)</option>
-              </select>
-            </div>
+          {/* Category Field */}
+          <div>
+            <label className="block font-semibold text-slate-800 mb-1">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as IssueCategory)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-600/30 text-xs bg-white"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           {/* Location & Ward Section */}
