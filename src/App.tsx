@@ -19,7 +19,7 @@ import { CivicReport, AnalyticsSummary, AuthUser } from './types';
 import { Building2, Shield, CheckCircle, Info, ExternalLink } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'map' | 'submit' | 'track' | 'hotspots' | 'admin'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'submit' | 'track' | 'hotspots' | 'dashboard'>('map');
   const [reports, setReports] = useState<CivicReport[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +53,7 @@ export default function App() {
     setCurrentUser(null);
     localStorage.removeItem('civicconnect_user');
     showToast('Signed out successfully.');
-    if (activeTab === 'admin') setActiveTab('map');
+    if (activeTab === 'dashboard') setActiveTab('map');
   };
 
   const fetchData = async () => {
@@ -171,7 +171,7 @@ export default function App() {
             )}
 
             {/* View 5: Community Dashboard */}
-            {activeTab === 'admin' && (
+            {activeTab === 'dashboard' && (
               <AdminPortal
                 reports={reports}
                 onSelectReport={(rep) => setSelectedReportId(rep.id)}
@@ -219,7 +219,7 @@ export default function App() {
           setCurrentUser(user);
           localStorage.setItem('civicconnect_user', JSON.stringify(user));
           showToast(`Welcome, ${user.name || user.email}! Signed in successfully.`);
-          setActiveTab('admin');
+          setActiveTab('dashboard');
         }}
       />
 

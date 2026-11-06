@@ -14,8 +14,8 @@ import {
 import { AuthUser } from '../types';
 
 interface NavbarProps {
-  activeTab: 'map' | 'submit' | 'track' | 'hotspots' | 'admin';
-  setActiveTab: (tab: 'map' | 'submit' | 'track' | 'hotspots' | 'admin') => void;
+  activeTab: 'map' | 'submit' | 'track' | 'hotspots' | 'dashboard';
+  setActiveTab: (tab: 'map' | 'submit' | 'track' | 'hotspots' | 'dashboard') => void;
   currentUser: AuthUser | null;
   onOpenAuth: () => void;
   onLogout: () => void;
@@ -122,9 +122,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('admin')}
+                onClick={() => setActiveTab('dashboard')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  activeTab === 'admin'
+                  activeTab === 'dashboard'
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'text-slate-700 hover:text-slate-900'
                 }`}
