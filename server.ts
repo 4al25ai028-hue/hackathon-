@@ -407,7 +407,7 @@ app.post('/api/reports/:id/verify', async (req: Request, res: Response) => {
 /**
  * 9. Unified User Authentication
  */
-app.post('/api/admin/login', async (req: Request, res: Response) => {
+app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { username, password, action } = req.body;
     const email = (username || '').trim();
