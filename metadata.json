@@ -1,0 +1,8 @@
+{
+  "name": "Remix CivicConnect – Community Problem Reporting \u0026 Resolution Platform",
+  "description": "Transparent civic reporting platform connecting residents and local administrators to submit, track, resolve, and verify community issues with duplicate detection and recurrence analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
