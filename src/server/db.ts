@@ -87,18 +87,6 @@ export function initDatabase() {
       email TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
-
-    CREATE TABLE IF NOT EXISTS admin_users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      full_name TEXT NOT NULL,
-      department TEXT NOT NULL DEFAULT 'Indiranagar Zone Operations',
-      role TEXT NOT NULL DEFAULT 'SUPER_ADMIN',
-      badge_number TEXT DEFAULT 'CIVIC-OFFICER-701',
-      created_at TEXT NOT NULL
-    );
   `);
 
   // Column migration checks for existing SQLite database
@@ -107,27 +95,6 @@ export function initDatabase() {
   } catch {}
   try {
     db.exec("ALTER TABLE reports ADD COLUMN duplicate_status TEXT DEFAULT 'unique';");
-  } catch {}
-
-  // Check if admin_users has initial admin
-  try {
-    const adminCount = db.prepare('SELECT COUNT(*) as count FROM admin_users').get() as { count: number };
-    if (adminCount.count === 0) {
-      db.prepare(`
-        INSERT INTO admin_users (id, email, username, password_hash, full_name, department, role, badge_number, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        'adm-001',
-        'admin@gramvani.gov.in',
-        'admin',
-        'admin123',
-        'Chief Operations Officer',
-        'Indiranagar Zone Operations',
-        'SUPER_ADMIN',
-        'CIVIC-OFFICER-701',
-        new Date().toISOString()
-      );
-    }
   } catch {}
 
   // Check if initial seed is needed

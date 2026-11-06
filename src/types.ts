@@ -63,13 +63,20 @@ export interface IssueGroup {
   reports?: CivicReport[];
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  created_at?: string;
+}
+
 export interface StatusHistoryItem {
   id: number;
   report_id: string;
   from_status: ReportStatus | null;
   to_status: ReportStatus;
   action: string;
-  actor_type: 'CITIZEN' | 'ADMIN' | 'SYSTEM' | 'FIELD_CREW';
+  actor_type: 'CITIZEN' | 'ADMIN' | 'SYSTEM' | 'FIELD_CREW' | 'USER';
   actor_name: string;
   notes: string;
   created_at: string;

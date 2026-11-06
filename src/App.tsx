@@ -14,7 +14,8 @@ import { AdminPortal } from './components/AdminPortal';
 import { RecurringHotspotsView } from './components/RecurringHotspotsView';
 import { TrackReportView } from './components/TrackReportView';
 import { HowToUseModal } from './components/HowToUseModal';
-import { CivicReport, AnalyticsSummary } from './types';
+import { AuthModal } from './components/AuthModal';
+import { CivicReport, AnalyticsSummary, AuthUser } from './types';
 import { Building2, Shield, CheckCircle, Info, ExternalLink } from 'lucide-react';
 
 export default function App() {
@@ -26,12 +27,19 @@ export default function App() {
   // Modal states
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedReportForUpdate, setSelectedReportForUpdate] = useState<CivicReport | null>(null);
 
-  // Admin authentication
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [adminOfficer, setAdminOfficer] = useState<any>(null);
+  // User Authentication state
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('civicconnect_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Toast / notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -39,6 +47,13 @@ export default function App() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('civicconnect_user');
+    showToast('Signed out successfully.');
+    if (activeTab === 'admin') setActiveTab('map');
   };
 
   const fetchData = async () => {
@@ -68,38 +83,6 @@ export default function App() {
     fetchData();
   }, []);
 
-  const handleAdminLogin = async (
-    credentials: { username: string; password: string } | string
-  ): Promise<boolean> => {
-    try {
-      const payload = typeof credentials === 'string'
-        ? { pin: credentials }
-        : credentials;
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsAdminLoggedIn(true);
-        setAdminOfficer(data.officer);
-        showToast(`Authenticated as ${data.officer?.name || 'Administrator'}.`);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
-  const handleAdminLogout = () => {
-    setIsAdminLoggedIn(false);
-    setAdminOfficer(null);
-    showToast('Signed out of Officer Portal.');
-    if (activeTab === 'admin') setActiveTab('map');
-  };
-
   const selectedReport = reports.find(r => r.id === selectedReportId) || null;
   const pendingUnverifiedCount = reports.filter(r => r.status === 'SUBMITTED_UNVERIFIED').length;
 
@@ -118,9 +101,9 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isAdminLoggedIn={isAdminLoggedIn}
-        onOpenAdminLogin={() => setActiveTab('admin')}
-        onAdminLogout={handleAdminLogout}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
         pendingUnverifiedCount={pendingUnverifiedCount}
         onOpenHowToUse={() => setIsHowToUseOpen(true)}
       />
@@ -184,15 +167,15 @@ export default function App() {
               </div>
             )}
 
-            {/* View 5: Civic Officer Admin Portal */}
+            {/* View 5: Community Dashboard */}
             {activeTab === 'admin' && (
               <AdminPortal
                 reports={reports}
                 onSelectReport={(rep) => setSelectedReportId(rep.id)}
                 onRefreshReports={fetchData}
                 onOpenStatusModal={(rep) => setSelectedReportForUpdate(rep)}
-                isAdminLoggedIn={isAdminLoggedIn}
-                onLogin={handleAdminLogin}
+                currentUser={currentUser}
+                onOpenAuth={() => setIsAuthModalOpen(true)}
                 onNavigateHome={() => setActiveTab('map')}
               />
             )}
@@ -207,7 +190,6 @@ export default function App() {
           reportId={selectedReportId}
           onClose={() => setSelectedReportId(null)}
           onSelectReportId={(id) => setSelectedReportId(id)}
-          isAdmin={isAdminLoggedIn}
           onOpenStatusUpdate={(rep) => setSelectedReportForUpdate(rep)}
         />
       )}
@@ -226,6 +208,18 @@ export default function App() {
         }}
       />
 
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+          localStorage.setItem('civicconnect_user', JSON.stringify(user));
+          showToast(`Welcome, ${user.name || user.email}! Signed in successfully.`);
+          setActiveTab('admin');
+        }}
+      />
+
       {/* Floating Submit Modal (when triggered from other views) */}
       {isSubmitModalOpen && (
         <SubmitReportModal
@@ -240,7 +234,7 @@ export default function App() {
         />
       )}
 
-      {/* Status Update Modal (Officer Action) */}
+      {/* Status Update Modal */}
       {selectedReportForUpdate && (
         <StatusUpdateModal
           report={selectedReportForUpdate}
@@ -267,11 +261,9 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-4 text-[11px]">
             <span>Problem Statement PS-14 Compliant</span>
             <span>·</span>
-            <span>Dual Backend: Node.js Express &amp; Python Flask</span>
+            <span>Supabase Database &amp; Storage Connected</span>
             <span>·</span>
-            <span>Database: SQLite</span>
-            <span>·</span>
-            <span>Text Similarity Duplicate Guard</span>
+            <span>Unified Community Dashboard</span>
           </div>
         </div>
       </footer>

@@ -24,7 +24,6 @@ interface ReportDetailModalProps {
   reportId: string | null;
   onClose: () => void;
   onSelectReportId: (id: string) => void;
-  isAdmin: boolean;
   onOpenStatusUpdate?: (report: CivicReport) => void;
 }
 
@@ -32,7 +31,6 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   reportId,
   onClose,
   onSelectReportId,
-  isAdmin,
   onOpenStatusUpdate,
 }) => {
   const [report, setReport] = useState<CivicReport | null>(null);
@@ -218,12 +216,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            {isAdmin && report && onOpenStatusUpdate && (
+            {report && onOpenStatusUpdate && (
               <button
                 onClick={() => onOpenStatusUpdate(report)}
                 className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-md transition-colors shadow-xs"
               >
-                Update Status (Officer)
+                Update Status
               </button>
             )}
             <button

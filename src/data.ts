@@ -94,6 +94,51 @@ function sanitizeSearch(term: string): string {
   return term.trim().replace(/[,()%*\\]/g, ' ').replace(/\s+/g, ' ');
 }
 
+/**
+ * Uploads an image (Data URL / base64) to the Supabase Storage bucket 'report-images'.
+ * If already a public HTTP/HTTPS URL, returns it unchanged.
+ */
+export async function uploadImageToSupabaseStorage(
+  base64OrDataUrl: string,
+  prefix: string = 'complaint'
+): Promise<string> {
+  if (!base64OrDataUrl) return '';
+  if (!base64OrDataUrl.startsWith('data:image/')) return base64OrDataUrl;
+  if (!isSupabaseConfigured || !supabase) return base64OrDataUrl;
+
+  try {
+    const match = base64OrDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (!match) return base64OrDataUrl;
+
+    const mimeType = match[1];
+    const base64Data = match[2];
+    const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+    const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${extension}`;
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const { error: uploadError } = await supabase.storage
+      .from('report-images')
+      .upload(filename, buffer, {
+        contentType: mimeType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.warn('Supabase storage upload error:', uploadError.message);
+      return base64OrDataUrl;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('report-images')
+      .getPublicUrl(filename);
+
+    return publicUrlData?.publicUrl || base64OrDataUrl;
+  } catch (err: any) {
+    console.warn('Failed to upload image to report-images bucket:', err);
+    return base64OrDataUrl;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 1. Get all reports with optional filters
 // ---------------------------------------------------------------------------
@@ -183,6 +228,12 @@ export async function saveReportData(report: Partial<CivicReport>): Promise<Civi
 
   const now = new Date().toISOString();
 
+  // If report image is a base64 / data URL, upload to Supabase Storage 'report-images' bucket
+  let storedImageUrl = report.image_url || '';
+  if (storedImageUrl.startsWith('data:image/')) {
+    storedImageUrl = await uploadImageToSupabaseStorage(storedImageUrl, 'complaint');
+  }
+
   const row = {
     id: report.id,
     title: report.title || 'Untitled',
@@ -194,7 +245,7 @@ export async function saveReportData(report: Partial<CivicReport>): Promise<Civi
     latitude: report.latitude ?? null,
     longitude: report.longitude ?? null,
     ward: report.ward || 'General Ward',
-    image_url: report.image_url || '',
+    image_url: storedImageUrl,
     is_anonymous: Boolean(report.is_anonymous),
     submitter_name: report.submitter_name || 'Citizen',
     submitter_contact: report.submitter_contact || 'N/A',
@@ -267,6 +318,12 @@ export async function updateReportStatusData(
   if (currErr) throw new Error(`Supabase report fetch failed: ${currErr.message}`);
   if (!curr) throw new Error(`Report ${id} not found.`);
 
+  // If resolution image is a base64 / data URL, upload to Supabase Storage 'report-images' bucket
+  let storedResImageUrl = resolutionImageUrl || curr.resolution_image_url;
+  if (storedResImageUrl && storedResImageUrl.startsWith('data:image/')) {
+    storedResImageUrl = await uploadImageToSupabaseStorage(storedResImageUrl, 'resolution');
+  }
+
   const resolvedAt =
     curr.resolved_at ||
     (['RESOLVED_PENDING_VERIFICATION', 'VERIFIED_CLOSED'].includes(newStatus) ? now : null);
@@ -277,7 +334,7 @@ export async function updateReportStatusData(
       .update({
         status: newStatus,
         resolution_notes: resolutionNotes || curr.resolution_notes,
-        resolution_image_url: resolutionImageUrl || curr.resolution_image_url,
+        resolution_image_url: storedResImageUrl,
         admin_notes: adminNotes || curr.admin_notes,
         assigned_department: assignedDepartment || curr.assigned_department,
         assigned_officer: assignedOfficer || curr.assigned_officer,
@@ -296,9 +353,9 @@ export async function updateReportStatusData(
       from_status: curr.status,
       to_status: newStatus,
       action: `Status set to ${newStatus}`,
-      actor_type: 'ADMIN',
+      actor_type: 'USER',
       actor_name: officerName,
-      notes: resolutionNotes || adminNotes || 'Official administrative status update',
+      notes: resolutionNotes || adminNotes || 'Status update logged',
       created_at: now,
     },
   ]);
@@ -567,144 +624,126 @@ export async function seedSampleData(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// 10. Authenticate User for Admin Portal (ALL logged-in users are allowed)
+// 10. Universal User Authentication via Supabase Auth
 // ---------------------------------------------------------------------------
-export async function authenticateAdminUser(
-  usernameOrEmail: string,
-  password: string,
-  action?: 'login' | 'signup'
+export async function authenticateUser(
+  emailInput: string,
+  passwordInput: string,
+  action: 'login' | 'signup' = 'login'
 ): Promise<{
   success: boolean;
-  officer?: {
+  user?: {
+    id: string;
+    email: string;
     name: string;
-    badge: string;
-    role: string;
-    username: string;
-    email?: string;
   };
   error?: string;
 }> {
-  const cleanUser = usernameOrEmail.trim();
-  const cleanPass = password.trim();
+  const cleanEmail = (emailInput || '').trim();
+  const cleanPass = (passwordInput || '').trim();
 
-  if (!cleanUser || !cleanPass) {
-    return { success: false, error: 'Email/username and password are required.' };
+  if (!cleanEmail || !cleanPass) {
+    return { success: false, error: 'Email and password are required.' };
   }
 
-  // 1. SUPABASE AUTHENTICATION (Accepts ALL registered users in Supabase)
+  // 1. SUPABASE AUTHENTICATION (Uses Supabase Auth for all registered users)
   if (isSupabaseConfigured && supabase) {
     try {
-      // Option A: If action is signup or user wants to register in Supabase
-      if (action === 'signup' && cleanUser.includes('@')) {
+      if (action === 'signup') {
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: cleanUser.toLowerCase(),
+          email: cleanEmail.toLowerCase(),
           password: cleanPass,
         });
 
-        if (!signUpError && signUpData?.user) {
-          const userObj = signUpData.user;
-          return {
-            success: true,
-            officer: {
-              name: userObj.user_metadata?.full_name || userObj.email?.split('@')[0] || cleanUser,
-              badge: `USER-${userObj.id.slice(0, 6).toUpperCase()}`,
-              role: 'AUTHENTICATED_USER',
-              username: userObj.email || cleanUser,
-              email: userObj.email,
-            },
-          };
-        } else if (signUpError) {
-          // If already registered, proceed to login check
+        if (signUpError) {
+          return { success: false, error: signUpError.message };
         }
-      }
 
-      // Option B: Supabase Auth (Checks credentials for ANY registered user in Supabase Auth!)
-      if (cleanUser.includes('@')) {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: cleanUser.toLowerCase(),
-          password: cleanPass,
-        });
-
-        if (!authError && authData?.user) {
-          const userObj = authData.user;
-          const meta = userObj.user_metadata || {};
-          const displayName = meta.full_name || meta.name || userObj.email?.split('@')[0] || cleanUser;
-
-          // ALL authenticated Supabase users are granted access to admin page
+        if (signUpData?.user) {
+          const u = signUpData.user;
+          const displayName = u.user_metadata?.full_name || u.email?.split('@')[0] || cleanEmail;
           return {
             success: true,
-            officer: {
+            user: {
+              id: u.id,
+              email: u.email || cleanEmail,
               name: displayName,
-              badge: `USER-${userObj.id.slice(0, 6).toUpperCase()}`,
-              role: 'AUTHENTICATED_USER',
-              username: userObj.email || cleanUser,
-              email: userObj.email,
             },
           };
         }
       }
 
-      // Option C: Check in admin_users or users table in Supabase
-      try {
-        const { data: dbUser } = await supabase
-          .from('admin_users')
-          .select('*')
-          .or(`email.ilike.${cleanUser},username.ilike.${cleanUser}`)
-          .maybeSingle();
+      // Login using official supabase.auth.signInWithPassword
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail.toLowerCase(),
+        password: cleanPass,
+      });
 
-        if (dbUser) {
-          const isMatch =
-            dbUser.password_hash === cleanPass ||
-            dbUser.password === cleanPass ||
-            cleanPass === process.env.ADMIN_PIN ||
-            cleanPass === 'admin123' ||
-            cleanPass === 'civic2026';
+      if (authError) {
+        return { success: false, error: authError.message };
+      }
 
-          if (isMatch) {
-            return {
-              success: true,
-              officer: {
-                name: dbUser.full_name || dbUser.username || cleanUser,
-                badge: dbUser.badge_number || 'USER-01',
-                role: 'AUTHENTICATED_USER',
-                username: dbUser.username || cleanUser,
-                email: dbUser.email,
-              },
-            };
-          }
-        }
-      } catch {}
+      if (authData?.user) {
+        const u = authData.user;
+        const displayName = u.user_metadata?.full_name || u.email?.split('@')[0] || cleanEmail;
+        return {
+          success: true,
+          user: {
+            id: u.id,
+            email: u.email || cleanEmail,
+            name: displayName,
+          },
+        };
+      }
 
       return {
         success: false,
-        error: 'Invalid credentials. Please verify your Supabase user email and password.',
+        error: 'Authentication failed. Please verify your email and password.',
       };
     } catch (err: any) {
-      console.warn('Supabase authentication check failed:', err);
+      console.warn('Supabase authentication error:', err);
+      return {
+        success: false,
+        error: err.message || 'Supabase authentication failed.',
+      };
     }
   }
 
-  // 2. FALLBACK (when Supabase credentials not yet configured in .env):
-  // ANY logged-in user is allowed into the admin page!
-  if (cleanUser && cleanPass.length >= 3) {
-    const displayName = cleanUser.includes('@')
-      ? cleanUser.split('@')[0].replace('.', ' ').replace(/(^\w|\s\w)/g, (m) => m.toUpperCase())
-      : cleanUser.replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
+  // 2. Local/Dev fallback when Supabase keys are not yet configured in environment:
+  if (cleanEmail && cleanPass.length >= 3) {
+    const displayName = cleanEmail.includes('@')
+      ? cleanEmail.split('@')[0].replace('.', ' ').replace(/(^\w|\s\w)/g, (m) => m.toUpperCase())
+      : cleanEmail;
 
     return {
       success: true,
-      officer: {
+      user: {
+        id: `usr-${Date.now()}`,
+        email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@example.com`,
         name: displayName,
-        badge: 'USER-01',
-        role: 'AUTHENTICATED_USER',
-        username: cleanUser,
-        email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@example.com`,
       },
     };
   }
 
   return {
     success: false,
-    error: 'Please enter a valid username or email and password to log in.',
+    error: 'Please enter a valid email and password.',
   };
 }
+
+// Backward-compatible alias for any existing code
+export const authenticateAdminUser = async (userOrEmail: string, pass: string, action?: 'login' | 'signup') => {
+  const result = await authenticateUser(userOrEmail, pass, action);
+  return {
+    success: result.success,
+    officer: result.user ? {
+      name: result.user.name,
+      badge: 'COMMUNITY',
+      role: 'USER',
+      username: result.user.email,
+      email: result.user.email,
+    } : undefined,
+    user: result.user,
+    error: result.error,
+  };
+};

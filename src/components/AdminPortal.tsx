@@ -30,15 +30,15 @@ import {
   Shield,
   Landmark
 } from 'lucide-react';
-import { CivicReport, ReportStatus, IssueGroup } from '../types';
+import { CivicReport, ReportStatus, IssueGroup, AuthUser } from '../types';
 
 interface AdminPortalProps {
   reports: CivicReport[];
   onSelectReport: (report: CivicReport) => void;
   onRefreshReports: () => void;
   onOpenStatusModal: (report: CivicReport) => void;
-  isAdminLoggedIn: boolean;
-  onLogin: (credentials: { username: string; password: string } | string) => Promise<boolean>;
+  currentUser: AuthUser | null;
+  onOpenAuth: () => void;
   onNavigateHome?: () => void;
 }
 
@@ -47,17 +47,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onSelectReport,
   onRefreshReports,
   onOpenStatusModal,
-  isAdminLoggedIn,
-  onLogin,
+  currentUser,
+  onOpenAuth,
   onNavigateHome,
 }) => {
-  const [usernameInput, setUsernameInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
   // Tabs inside admin: Default to 'groups' for Grouped Community Issue Dashboard
   const [activeSubTab, setActiveSubTab] = useState<'groups' | 'queue' | 'duplicates' | 'all'>('groups');
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,11 +105,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   };
 
   useEffect(() => {
-    if (isAdminLoggedIn) {
-      fetchIssueGroups();
-      fetchDatabaseStatus();
-    }
-  }, [isAdminLoggedIn, reports]);
+    fetchIssueGroups();
+    fetchDatabaseStatus();
+  }, [reports]);
 
   const toggleGroupExpand = (groupId: string) => {
     setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
@@ -172,27 +163,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [selectedDuplicate, setSelectedDuplicate] = useState<CivicReport | null>(null);
   const [isProcessingDuplicate, setIsProcessingDuplicate] = useState(false);
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!usernameInput.trim()) {
-      setLoginError('Please enter your Officer Email or Username.');
-      return;
-    }
-    if (!passwordInput.trim()) {
-      setLoginError('Please enter your account password.');
-      return;
-    }
-    setLoginError(null);
-    setIsLoggingIn(true);
-    const success = await onLogin({
-      username: usernameInput.trim(),
-      password: passwordInput.trim(),
-    });
-    setIsLoggingIn(false);
-    if (!success) {
-      setLoginError('Invalid administrator credentials. Verification failed against Supabase.');
-    }
-  };
+
 
   const handleDuplicateAction = async (reportId: string, action: 'MERGE_AND_CLOSE' | 'CONFIRM_DISTINCT', originalId?: string) => {
     setIsProcessingDuplicate(true);
@@ -220,159 +191,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  if (!isAdminLoggedIn) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center py-6 px-4">
-        {/* Back navigation button */}
-        {onNavigateHome && (
-          <div className="w-full max-w-lg mb-4 flex items-center justify-between">
-            <button
-              onClick={onNavigateHome}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Public Citizen Portal &amp; Map</span>
-            </button>
-            <span className="text-[11px] text-slate-400 font-mono">PORTAL ID: GV-ADM-2026</span>
-          </div>
-        )}
 
-        <div className="w-full max-w-lg bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden">
-          {/* Government Portal Header */}
-          <div className="bg-slate-900 text-white p-6 relative overflow-hidden">
-            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-            
-            <div className="flex items-center gap-3.5 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-md shrink-0">
-                <Landmark className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] tracking-wider uppercase font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
-                    MUNICIPAL AUTHORITY
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-mono">SECURE GATEWAY</span>
-                </div>
-                <h1 className="text-lg font-bold text-white tracking-tight mt-0.5">
-                  GramVani Admin Portal
-                </h1>
-                <p className="text-xs text-slate-300">
-                  Community Grievance Redressal &amp; Resolution Desk
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Single Administrator Gateway</span>
-              </span>
-              <span>Charter PS-14 Compliant</span>
-            </div>
-          </div>
-
-          {/* Login Form Body */}
-          <div className="p-6 space-y-5">
-            {loginError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-start gap-2 animate-fade-in">
-                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <div className="flex-1 font-medium">{loginError}</div>
-              </div>
-            )}
-
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {/* Field 1: Username / Email */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Administrator Email or Username
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    placeholder="e.g. admin@gramvani.gov.in"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Field 2: Password with toggle */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Administrator Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Enter admin password"
-                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-hidden"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Remember me & Security Info */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded-sm focus:ring-emerald-500"
-                  />
-                  <span>Remember on this workstation</span>
-                </label>
-                <span className="text-[11px] text-emerald-700 font-medium">Supabase Auth Verified</span>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-              >
-                {isLoggingIn ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Verifying with Supabase...</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Sign In as Administrator</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Compliance Footer */}
-            <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1.5">
-              <Shield className="w-3 h-3 text-slate-400" />
-              <span>Official portal. All actions are audited under Municipal Service Charter PS-14.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Filter queues
   const unverifiedList = reports.filter(r => r.status === 'SUBMITTED_UNVERIFIED');

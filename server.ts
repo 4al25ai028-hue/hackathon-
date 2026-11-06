@@ -14,7 +14,8 @@ import {
   clearAllData,
   seedSampleData,
   getDatabaseStatus,
-  authenticateAdminUser,
+  authenticateUser,
+  uploadImageToSupabaseStorage,
 } from './src/data.js';
 import { classifyReport, checkForDuplicateReport } from './src/services/classifier.js';
 import { calculateComplaintPriority } from './src/services/aiPriorityService.js';
@@ -23,7 +24,6 @@ import { CivicReport, IssueCategory, PriorityLevel, ReportStatus, HotspotCluster
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-const ADMIN_SECRET_PIN = process.env.ADMIN_PIN || 'civic2026';
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -405,24 +405,31 @@ app.post('/api/reports/:id/verify', async (req: Request, res: Response) => {
 });
 
 /**
- * 9. Admin Portal Authentication (Allows all logged-in Supabase users)
+ * 9. Unified User Authentication
  */
 app.post('/api/admin/login', async (req: Request, res: Response) => {
   try {
-    const { pin, username, password, action } = req.body;
-    const user = (username || pin || '').trim();
-    const pass = (password || pin || '').trim();
+    const { username, password, action } = req.body;
+    const email = (username || '').trim();
+    const pass = (password || '').trim();
 
-    const authResult = await authenticateAdminUser(user, pass, action);
+    const authResult = await authenticateUser(email, pass, action || 'login');
     if (authResult.success) {
       res.json({
         success: true,
-        officer: authResult.officer,
+        user: authResult.user,
+        officer: {
+          name: authResult.user?.name,
+          badge: 'COMMUNITY',
+          role: 'USER',
+          username: authResult.user?.email,
+          email: authResult.user?.email,
+        },
       });
     } else {
       res.status(401).json({
         success: false,
-        error: authResult.error || 'Invalid credentials. Please verify your Supabase user account.',
+        error: authResult.error || 'Invalid credentials. Please verify your email and password.',
       });
     }
   } catch (error: any) {
