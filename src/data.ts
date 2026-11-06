@@ -40,35 +40,38 @@ export const supabase: SupabaseClient = createClient(
 console.log('Supabase initialized with URL:', supabaseUrl);
 console.log('Supabase configured:', isSupabaseConfigured);
 
-export function getDatabaseStatus(): {
-  is_connected: boolean;
-  provider: 'supabase' | 'sqlite_fallback';
-  url: string;
-  configured: boolean;
-  message: string;
-} {
-  if (isSupabaseConfigured) {
-    let cleanUrl = supabaseUrl;
-    try {
-      const parsed = new URL(supabaseUrl);
-      cleanUrl = `${parsed.protocol}//${parsed.hostname}`;
-    } catch {}
+export async function getDatabaseStatus() {
+  if (!isSupabaseConfigured) {
     return {
-      is_connected: true,
+      is_connected: false,
       provider: 'supabase',
-      url: cleanUrl,
-      configured: true,
-      message: `Active Supabase backend connected (${cleanUrl}). All data persistence, audit trails, and issue groups are stored in Supabase.`,
+      configured: false,
+      message: 'Supabase credentials are missing.'
     };
   }
 
-  return {
-    is_connected: false,
-    provider: 'sqlite_fallback',
-    url: 'local',
-    configured: false,
-    message: 'Supabase URL & Anon Key not yet provided in .env. Running in local mode.',
-  };
+  try {
+    const { error } = await supabase
+      .from('reports')
+      .select('id', { head: true })
+      .limit(1);
+
+    if (error) throw error;
+
+    return {
+      is_connected: true,
+      provider: 'supabase',
+      configured: true,
+      message: 'Supabase database connection successful.'
+    };
+  } catch (error: any) {
+    return {
+      is_connected: false,
+      provider: 'supabase',
+      configured: true,
+      message: error.message
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
